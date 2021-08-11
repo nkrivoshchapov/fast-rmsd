@@ -1,0 +1,20 @@
+cmake_minimum_required(VERSION 3.14)
+project(fast_rmsd)
+
+set(CMAKE_CXX_STANDARD 14)
+
+set(Boost_USE_STATIC_LIBS OFF)
+set(Boost_USE_MULTITHREADED OFF)
+set(Boost_USE_STATIC_RUNTIME OFF)
+set(THREADS_PREFER_PTHREAD_FLAG ON)
+find_package(Boost COMPONENTS log system thread)
+find_package(Threads REQUIRED)
+find_package(GSL REQUIRED)
+
+if(Boost_FOUND AND Threads_FOUND AND GSL_FOUND)
+    add_executable(fast_rmsd main.cpp conformation.cpp conformation.h)
+    target_compile_options(fast_rmsd PRIVATE -O3 -pedantic -Wall -Wextra)
+    target_link_libraries(fast_rmsd ${Boost_LIBRARIES} Threads::Threads GSL::gsl GSL::gslcblas)
+    target_link_options(fast_rmsd PRIVATE -O3 -pedantic -Wall -Wextra)
+    include_directories(${Boost_INCLUDE_DIRS})
+endif()

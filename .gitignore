@@ -1,0 +1,4 @@
+implementation/build/*
+implementation/cmake-build-debug/*
+implementation/.idea/*
+python_template/rmsd/__pycache__/*
