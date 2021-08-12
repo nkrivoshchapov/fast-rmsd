@@ -6,12 +6,18 @@
 #include <chrono>
 #include <fstream>
 #include <sstream>
+//#include <omp.h>
+
+#define RMSD_THRESHHOLD 0.03
+#define ENERGY_THRESHHOLD 0.01 // kcal/mol
+#define HtoKCAL 627.509474
 
 int main() {
     BOOST_LOG_TRIVIAL(info) << "Starting the script";
-    const std::string target_path( "../../testset" );
+    const std::string target_path( "../../filter_set" );
     const boost::regex my_filter( ".*\.xyz" );
-    std::list<Conformation> conformations;
+    typedef std::list<Conformation> conflist ;
+    conflist conformations;
     std::list<boost::filesystem::path> testfiles;
     boost::filesystem::directory_iterator end_itr;
     boost::smatch what;
@@ -31,29 +37,22 @@ int main() {
         conformation.prepare();
     }
 
-    typedef std::list<double> OneDList;
-    typedef std::list<std::list<double>> TwoDList;
-
+    unsigned int nconf = conformations.size(), idx = 0;
     std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
-    TwoDList result;
-    for (auto & confA : conformations) {
-        OneDList curline;
-        for (auto &confB : conformations) {
-            curline.push_back(confA.rmsd(confB));
+//    #pragma omp for collapse(2)
+    for (auto confA = conformations.begin(); confA != conformations.end(); ++confA) {
+        BOOST_LOG_TRIVIAL(info) << "Done " << idx << "/" << nconf;
+        for (auto confB = std::next(confA, 1); confB != conformations.end(); ++confB) {
+            if((abs(confA->energy - confB->energy) * HtoKCAL < ENERGY_THRESHHOLD) && (confA->rmsd(*confB) < RMSD_THRESHHOLD)) {
+                BOOST_LOG_TRIVIAL(info) << "Erasing " << confA->myname;
+                confA = conformations.erase(confA);
+                confA--;
+                break;
+            }
         }
-        result.push_back(curline);
+        idx++;
     }
     std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
-    BOOST_LOG_TRIVIAL(info) << "Time Elapsed on RMSDs: " << std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count() << " ms";
-
-    std::ofstream myfile;
-    myfile.open ("../../results_cpp.dat");
-    for (auto & curline : result) {
-        for (auto & curitem : curline) {
-            myfile << curitem << " ";
-        }
-        myfile << "\n";
-    }
-    myfile.close();
+    BOOST_LOG_TRIVIAL(info) << "Time Elapsed: " << std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count() << " ms";
     return 0;
 }
