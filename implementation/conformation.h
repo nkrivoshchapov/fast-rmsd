@@ -21,6 +21,7 @@ class Conformation {
         unsigned int n_atoms;
         double energy;
         std::string myname;
+        bool is_duplicate;
 
     private:
         gsl_matrix *c_m, *v_m, *rot_m, *temp_xyz;

@@ -6,11 +6,13 @@
 #include <cmath>
 using namespace std;
 
-Conformation::Conformation(){
+Conformation::Conformation() :
+    is_duplicate(false) {
     //BOOST_LOG_TRIVIAL(info) << "Running empty constructor";
 }
 
-Conformation::Conformation(const std::string& filename){
+Conformation::Conformation(const std::string& filename) :
+    is_duplicate(false) {
     //BOOST_LOG_TRIVIAL(info) << "Initializing conformation from " << filename;
     std::ifstream infile(filename);
     myname = filename;
@@ -69,6 +71,7 @@ Conformation::Conformation(const std::string& filename){
 //TODO use move semantics
 Conformation::Conformation(const Conformation& other) {
     //BOOST_LOG_TRIVIAL(info) << "Creating a copy of  " << other.myname;
+    is_duplicate = other.is_duplicate;
     myname = std::string("Copy of " + other.myname);
     energy = other.energy;
     n_atoms = other.n_atoms;

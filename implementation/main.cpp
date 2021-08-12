@@ -1,3 +1,5 @@
+#pragma clang diagnostic push
+#pragma ide diagnostic ignored "openmp-use-default-none"
 #include <iostream>
 #include "conformation.h"
 #include <list>
@@ -6,7 +8,7 @@
 #include <chrono>
 #include <fstream>
 #include <sstream>
-//#include <omp.h>
+#include <omp.h>
 
 #define RMSD_THRESHHOLD 0.03
 #define ENERGY_THRESHHOLD 0.01 // kcal/mol
@@ -28,6 +30,8 @@ int main() {
     }
 
     testfiles.sort();
+
+    
     for (auto & testfile : testfiles) {
         conformations.emplace_back(Conformation(testfile.string()));
         BOOST_LOG_TRIVIAL(info) << "Added file (sorted) = " << testfile.string();
@@ -37,22 +41,34 @@ int main() {
         conformation.prepare();
     }
 
-    unsigned int nconf = conformations.size(), idx = 0;
     std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
-//    #pragma omp for collapse(2)
-    for (auto confA = conformations.begin(); confA != conformations.end(); ++confA) {
-        BOOST_LOG_TRIVIAL(info) << "Done " << idx << "/" << nconf;
-        for (auto confB = std::next(confA, 1); confB != conformations.end(); ++confB) {
-            if((abs(confA->energy - confB->energy) * HtoKCAL < ENERGY_THRESHHOLD) && (confA->rmsd(*confB) < RMSD_THRESHHOLD)) {
-                BOOST_LOG_TRIVIAL(info) << "Erasing " << confA->myname;
-                confA = conformations.erase(confA);
-                confA--;
-                break;
+    unsigned int nconf = conformations.size(), idx = 0;
+    #pragma omp parallel
+    #pragma omp single
+    {
+        for(auto confA = conformations.begin(); confA != conformations.end(); ++confA) {
+            if(confA->is_duplicate)
+                continue;
+
+            #pragma omp task firstprivate(confA)
+            {
+                BOOST_LOG_TRIVIAL(info) << "Thread " << omp_get_thread_num() << " Done " << idx << "/" << nconf;
+                for (auto confB = std::next(confA, 1); confB != conformations.end(); ++confB) {
+                    if((!confB->is_duplicate) && (abs(confA->energy - confB->energy) * HtoKCAL < ENERGY_THRESHHOLD) && (confA->rmsd(*confB) < RMSD_THRESHHOLD)) {
+                        BOOST_LOG_TRIVIAL(info) << "Thread " << omp_get_thread_num() << " Erasing " << confA->myname;
+                        confA->is_duplicate = true;
+                        break;
+                    }
+                }
+                idx++;
             }
         }
-        idx++;
+        #pragma omp taskwait
     }
+
     std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
     BOOST_LOG_TRIVIAL(info) << "Time Elapsed: " << std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count() << " ms";
     return 0;
 }
+
+#pragma clang diagnostic pop
