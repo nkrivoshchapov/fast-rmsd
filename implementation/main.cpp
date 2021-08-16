@@ -4,12 +4,10 @@
 #include <boost/filesystem.hpp>
 #include <boost/regex.hpp>
 #include <chrono>
-#include <fstream>
-#include <sstream>
-//#include <omp.h>
 
-#define RMSD_THRESHHOLD 0.03
-#define ENERGY_THRESHHOLD 0.01 // kcal/mol
+#define RMSD_THRESHHOLD 0.3
+#define ENERGYDIFF_THRESHHOLD 0.0001
+#define ENERGY_THRESHHOLD 30 // kcal/mol
 #define HtoKCAL 627.509474
 
 int main() {
@@ -33,17 +31,26 @@ int main() {
         BOOST_LOG_TRIVIAL(info) << "Added file (sorted) = " << testfile.string();
     }
 
+    double minener = conformations.begin()->energy;
     for (auto & conformation : conformations) {
+        if(conformation.energy < minener) {
+            minener = conformation.energy;
+        }
         conformation.prepare();
     }
 
     unsigned int nconf = conformations.size(), idx = 0;
     std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
-//    #pragma omp for collapse(2)
     for (auto confA = conformations.begin(); confA != conformations.end(); ++confA) {
         BOOST_LOG_TRIVIAL(info) << "Done " << idx << "/" << nconf;
+        if(abs(confA->energy - minener) * HtoKCAL > ENERGY_THRESHHOLD) {
+            confA = conformations.erase(confA);
+            confA--;
+            continue;
+        }
+
         for (auto confB = std::next(confA, 1); confB != conformations.end(); ++confB) {
-            if((abs(confA->energy - confB->energy) * HtoKCAL < ENERGY_THRESHHOLD) && (confA->rmsd(*confB) < RMSD_THRESHHOLD)) {
+            if((abs(confA->energy - confB->energy) < ENERGYDIFF_THRESHHOLD) && (confA->rmsd(*confB) < RMSD_THRESHHOLD)) {
                 BOOST_LOG_TRIVIAL(info) << "Erasing " << confA->myname;
                 confA = conformations.erase(confA);
                 confA--;
@@ -52,6 +59,13 @@ int main() {
         }
         idx++;
     }
+
+    std::ofstream myfile;
+    myfile.open ("unique_conformers.txt");
+    for (auto & conformation : conformations) {
+        myfile << conformation.myname << "\n";
+    }
+    myfile.close();
     std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
     BOOST_LOG_TRIVIAL(info) << "Time Elapsed: " << std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count() << " ms";
     return 0;

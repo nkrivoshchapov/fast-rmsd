@@ -69,7 +69,7 @@ Conformation::Conformation(const std::string& filename){
 //TODO use move semantics
 Conformation::Conformation(const Conformation& other) {
     //BOOST_LOG_TRIVIAL(info) << "Creating a copy of  " << other.myname;
-    myname = std::string("Copy of " + other.myname);
+    myname = other.myname;
     energy = other.energy;
     n_atoms = other.n_atoms;
     xyz_m = gsl_matrix_alloc(n_atoms, 3);
