@@ -72,7 +72,7 @@ Conformation::Conformation(const std::string& filename) :
 Conformation::Conformation(const Conformation& other) {
     //BOOST_LOG_TRIVIAL(info) << "Creating a copy of  " << other.myname;
     is_duplicate = other.is_duplicate;
-    myname = std::string("Copy of " + other.myname);
+    myname = other.myname;
     energy = other.energy;
     n_atoms = other.n_atoms;
     xyz_m = gsl_matrix_alloc(n_atoms, 3);
@@ -194,7 +194,7 @@ double Conformation::rmsd(const Conformation& other) {
 
 Conformation& Conformation::operator=(const Conformation& other) {
     is_duplicate = other.is_duplicate;
-    myname = std::string("Copy of " + other.myname);
+    myname = other.myname;
     energy = other.energy;
     n_atoms = other.n_atoms;
     xyz_m = gsl_matrix_alloc(n_atoms, 3);

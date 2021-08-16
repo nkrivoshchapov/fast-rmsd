@@ -12,8 +12,9 @@
 #include <sstream>
 #include <omp.h>
 
-#define RMSD_THRESHHOLD 0.03
-#define ENERGY_THRESHHOLD 0.01 // kcal/mol
+#define RMSD_THRESHHOLD 0.3
+#define ENERGYDIFF_THRESHHOLD 0.0001
+#define ENERGY_THRESHHOLD 30 // kcal/mol
 #define HtoKCAL 627.509474
 
 int main() {
@@ -49,13 +50,26 @@ int main() {
     }
     delete[] testfiles;
 
+    double minener = conformations[0].energy;
+    for(unsigned int i = 0; i < num_files; ++i){
+        if(conformations[i].energy < minener) {
+            minener = conformations[i].energy;
+        }
+    }
+
+    for(unsigned int i = 0; i < num_files; ++i){
+        if(abs(conformations[i].energy - minener) * HtoKCAL > ENERGY_THRESHHOLD){
+            conformations[i].is_duplicate = true;
+        }
+    }
+
     std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
     #pragma omp parallel for collapse(2)
     for(unsigned int i = 0; i < num_files; ++i) {
-        for (unsigned int j = 0; j < i; ++j) {
+        for (unsigned int j = 0; j < num_files; ++j) {
             if((conformations[i].is_duplicate) || (i == j))
                 continue;
-            if((!conformations[j].is_duplicate) && (abs(conformations[i].energy - conformations[j].energy) * HtoKCAL < ENERGY_THRESHHOLD) && (conformations[i].rmsd(conformations[j]) < RMSD_THRESHHOLD))
+            if((!conformations[j].is_duplicate) && (abs(conformations[i].energy - conformations[j].energy) < ENERGYDIFF_THRESHHOLD) && (conformations[i].rmsd(conformations[j]) < RMSD_THRESHHOLD))
             {
                 #pragma omp critical
                     conformations[i].is_duplicate = true;
@@ -63,29 +77,14 @@ int main() {
             }
         }
     }
-//    #pragma omp single
-//    {
-//        for(auto confA = conformations.begin(); confA != conformations.end(); ++confA) {
-//            idx++;
-//            if(confA->is_duplicate)
-//                continue;
-//
-//            #pragma omp task firstprivate(confA)
-//            {
-//                BOOST_LOG_TRIVIAL(info) << "Thread " << omp_get_thread_num() << " Done " << idx << "/" << nconf;
-//                for (auto confB = std::next(confA, 1); confB != conformations.end(); ++confB) {
-//                    if((!confB->is_duplicate) && (abs(confA->energy - confB->energy) * HtoKCAL < ENERGY_THRESHHOLD) && (confA->rmsd(*confB) < RMSD_THRESHHOLD)) {
-//                        BOOST_LOG_TRIVIAL(info) << "Thread " << omp_get_thread_num() << " Erasing " << confA->myname;
-//                        #pragma omp critical
-//                            confA->is_duplicate = true;
-//                        break;
-//                    }
-//                }
-//            }
-//        }
-//        #pragma omp taskwait
-//    }
-//
+
+    std::ofstream myfile;
+    myfile.open ("unique_conformers.txt");
+    for (unsigned int i = 0; i < num_files; ++i) {
+        if(!conformations[i].is_duplicate)
+            myfile << conformations[i].myname << "\n";
+    }
+    myfile.close();
     std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
     BOOST_LOG_TRIVIAL(info) << "Time Elapsed: " << std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count() << " ms";
     delete[] conformations;
