@@ -22,6 +22,7 @@ class Conformation {
         double energy;
         std::string myname;
         bool is_duplicate;
+        Conformation& operator=(const Conformation&);
 
     private:
         gsl_matrix *c_m, *v_m, *rot_m, *temp_xyz;

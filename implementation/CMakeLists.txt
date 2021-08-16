@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.14)
 project(fast_rmsd)
 
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 17)
 
 set(Boost_USE_STATIC_LIBS OFF)
 set(Boost_USE_MULTITHREADED OFF)
@@ -14,7 +14,7 @@ find_package(OpenMP REQUIRED)
 
 if(Boost_FOUND AND Threads_FOUND AND GSL_FOUND AND OpenMP_CXX_FOUND)
     add_executable(fast_rmsd main.cpp conformation.cpp conformation.h)
-    target_compile_options(fast_rmsd PRIVATE -O3 -pedantic -Wall -Wextra -fopenmp -lomp)
+    target_compile_options(fast_rmsd PRIVATE -O3 -pedantic -Wall -Wextra)
     target_link_libraries(fast_rmsd ${Boost_LIBRARIES} Threads::Threads GSL::gsl GSL::gslcblas OpenMP::OpenMP_CXX)
     target_link_options(fast_rmsd PRIVATE -O3 -pedantic -Wall -Wextra -fopenmp)
     include_directories(${Boost_INCLUDE_DIRS})

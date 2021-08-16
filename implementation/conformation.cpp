@@ -190,3 +190,20 @@ double Conformation::rmsd(const Conformation& other) {
     //BOOST_LOG_TRIVIAL(info) << "Calced RMSD = \n" << res;
     return res;
 }
+
+
+Conformation& Conformation::operator=(const Conformation& other) {
+    is_duplicate = other.is_duplicate;
+    myname = std::string("Copy of " + other.myname);
+    energy = other.energy;
+    n_atoms = other.n_atoms;
+    xyz_m = gsl_matrix_alloc(n_atoms, 3);
+    gsl_matrix_memcpy(xyz_m,other.xyz_m);
+    temp_xyz = gsl_matrix_alloc(n_atoms, 3);
+    c_m = gsl_matrix_alloc(3, 3);
+    v_m = gsl_matrix_alloc(3, 3);
+    rot_m = gsl_matrix_alloc(3, 3);
+    work_v = gsl_vector_alloc(3);
+    s_v = gsl_vector_alloc(3);
+    return *this;
+}
