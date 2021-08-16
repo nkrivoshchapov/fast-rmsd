@@ -20,7 +20,7 @@
 int main() {
     BOOST_LOG_TRIVIAL(info) << "Starting the script";
     const std::string target_path( "../../filter_set" );
-    const boost::regex my_filter( ".*\.xyz" );
+    const boost::regex my_filter( ".*noh\.xyz" );
     boost::filesystem::directory_iterator end_itr;
     boost::smatch what;
     unsigned int num_files = 0;
@@ -69,7 +69,7 @@ int main() {
         for (unsigned int j = 0; j < num_files; ++j) {
             if((conformations[i].is_duplicate) || (i == j))
                 continue;
-            if((!conformations[j].is_duplicate) && (abs(conformations[i].energy - conformations[j].energy) < ENERGYDIFF_THRESHHOLD) && (conformations[i].rmsd(conformations[j]) < RMSD_THRESHHOLD))
+            if(/*(!conformations[j].is_duplicate) && */(abs(conformations[i].energy - conformations[j].energy) < ENERGYDIFF_THRESHHOLD) && (conformations[i].rmsd(conformations[j]) < RMSD_THRESHHOLD))
             {
                 #pragma omp critical
                     conformations[i].is_duplicate = true;
